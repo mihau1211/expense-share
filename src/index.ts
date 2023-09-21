@@ -1,10 +1,6 @@
 import app from './app'
-import dotenv from 'dotenv'
-import path from 'path';
+import env from './utils/envLoader'
 
-const envPath = path.join(__dirname, '../config/dev.env');
-dotenv.config({ path: envPath });
-
-app.listen(process.env.PORT, () => {
+app.listen(env.PORT, () => {
     console.log('Server is up on port ' + 3000)
 })
