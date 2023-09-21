@@ -50,19 +50,6 @@ const userSchema = new mongoose.Schema({
     timestamps: true
 })
 
-// interface IUser extends mongoose.Document {
-//     name: string
-//     password: string
-//     email: string
-//     tokens: { token: string }[]
-// }
-
-// interface IUserMethods extends mongoose.Model<IUser> {
-//     findByCredentials(email: string, password: string): Promise<IUser | null>
-//     generateAuthToken(): Promise<string>
-//     toJson(): any
-// }
-
 interface IUser extends mongoose.Document {
     name: string;
     password: string;
