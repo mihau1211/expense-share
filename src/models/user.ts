@@ -6,7 +6,7 @@ import env from '../utils/envLoader'
 
 const secret = env.JWT_SECRET
 if (typeof secret !== 'string') {
-    throw new Error('Unable to generate token.')
+    throw new Error('ERROR: Secret has wrong type.')
 }
 
 const userSchema = new mongoose.Schema({
@@ -18,7 +18,14 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        minLength: 7,
+        validate: {
+            validator: (value: string) => {
+                return validator.isStrongPassword(value)
+            },
+            message: 'Password is not strong enough.'
+        }
     },
     email: {
         type: String,
@@ -26,10 +33,11 @@ const userSchema = new mongoose.Schema({
         unique: true,
         lowercase: true,
         trim: true,
-        validation(value: string) {
-            if (!validator.isEmail(value)) {
-                throw new Error('Email is invalid!')
-            }
+        validate: {
+            validator: (value: string) => {
+                return validator.isEmail(value);
+            },
+            message: 'Email is invalid.'
         }
     },
     tokens: [{
@@ -42,11 +50,31 @@ const userSchema = new mongoose.Schema({
     timestamps: true
 })
 
+// interface IUser extends mongoose.Document {
+//     name: string
+//     password: string
+//     email: string
+//     tokens: { token: string }[]
+// }
+
+// interface IUserMethods extends mongoose.Model<IUser> {
+//     findByCredentials(email: string, password: string): Promise<IUser | null>
+//     generateAuthToken(): Promise<string>
+//     toJson(): any
+// }
+
 interface IUser extends mongoose.Document {
-    name: string
-    password: string
-    email: string
-    tokens: { token: string }[]
+    name: string;
+    password: string;
+    email: string;
+    tokens: { token: string }[];
+    generateAuthToken(): Promise<string>;
+    toJson(): any;
+}
+
+// Define IUserMethods interface for the User model
+interface IUserMethods extends mongoose.Model<IUser> {
+    findByCredentials(email: string, password: string): Promise<IUser | null>;
 }
 
 userSchema.statics.findByCredentials = async (email: string, password: string): Promise<IUser> => {
@@ -65,9 +93,12 @@ userSchema.statics.findByCredentials = async (email: string, password: string): 
     return user;
 }
 
-userSchema.methods.generateAuthToken = async function () {
+userSchema.methods.generateAuthToken = async function (): Promise<string> {
     const user: any = this
     const token: string = jwt.sign({ _id: user._id.toString() }, secret)
+
+    user.tokens = user.tokens.concat({ token });
+    await user.save();
 
     return token
 }
@@ -79,18 +110,20 @@ userSchema.methods.toJson = function () {
 
     delete userObj.password
     delete userObj.tokens
+
+    return userObj
 }
 
 userSchema.pre('save', async function (next: Function) {
-    const user: IUser = this
+    const user: any = this
 
     if (user.isModified('password')) {
-        user.password = await bcrypt.hash(user.password, secret)
+        user.password = await bcrypt.hash(user.password, 8)
     }
 
     next()
 })
 
-const User = mongoose.model('User', userSchema)
+const User = mongoose.model<IUser, IUserMethods>('User', userSchema)
 
 export default User
