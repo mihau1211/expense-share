@@ -1,9 +1,7 @@
 import jwt, { Jwt, JwtPayload } from 'jsonwebtoken'
 import User from '../models/user'
-import env from '../utils/envLoader'
 
-const secret = env.JWT_SECRET
-
+const secret = process.env.JWT_SECRET
 if (typeof secret !== 'string') {
     throw new Error('ERROR: Secret has wrong type.')
 }

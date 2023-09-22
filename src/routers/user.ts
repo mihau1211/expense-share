@@ -3,7 +3,6 @@ import User from '../models/user'
 import auth from '../middleware/auth'
 import multer from 'multer'
 import sharp from 'sharp'
-import env from '../utils/envLoader'
 
 const router = express.Router()
 

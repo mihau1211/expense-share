@@ -2,9 +2,8 @@ import mongoose from "mongoose"
 import validator from 'validator'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import env from '../utils/envLoader'
 
-const secret = env.JWT_SECRET
+const secret = process.env.JWT_SECRET
 if (typeof secret !== 'string') {
     throw new Error('ERROR: Secret has wrong type.')
 }
