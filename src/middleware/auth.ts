@@ -9,7 +9,7 @@ if (typeof secret !== 'string') {
 const auth = async (req: any, res: any, next: Function) => {
     try {
         const token = req.header('Authorization').replace('Bearer ', '')
-        const decoded:string | JwtPayload = jwt.verify(token, secret)
+        const decoded = jwt.verify(token, secret)
         if (typeof decoded === 'string') {
             throw new Error()
         }
@@ -22,7 +22,8 @@ const auth = async (req: any, res: any, next: Function) => {
         req.token = token
         req.user = user
         next()
-    } catch (error) {
+    } catch (error:any) {
+        console.log(error.message)
         res.status(401).send({ error: 'Please authenticate.' })
     }
 }
