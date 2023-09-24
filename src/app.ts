@@ -1,23 +1,14 @@
 require('./db/mongoose')
-
 import express from 'express'
 import User from './models/user'
+import userRouter from './routers/user'
+
+const apiV1Prefix = '/api/v1/'
 
 const app = express()
 
 app.use(express.json());
-
-app.post('/users', async (req: any, res: any) => {
-
-    console.log(req.body)
-    const user = new User(req.body);
-    try {
-        await user.save()
-        res.status(201).send(user)
-    } catch (error:any) {
-        res.status(400).send({error: error.message})
-    }
-})
+app.use(apiV1Prefix, userRouter)
 
 app.use(express.json())
 
