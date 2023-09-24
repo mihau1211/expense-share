@@ -34,10 +34,11 @@ const user2 = {
 }
 
 const setupDb = async () => {
-    await User.deleteMany()
+    await User.deleteMany({})
+    
 
     await new User(user1).save()
-    // await new User(user2).save()
+    await new User(user2).save()
 }
 
 export {

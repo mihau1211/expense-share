@@ -8,47 +8,6 @@ if (typeof secret !== 'string') {
     throw new Error('ERROR: Secret has wrong type.')
 }
 
-const userSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    password: {
-        type: String,
-        required: true,
-        trim: true,
-        minLength: 7,
-        validate: {
-            validator: (value: string) => {
-                return validator.isStrongPassword(value)
-            },
-            message: 'Password is not strong enough.'
-        }
-    },
-    email: {
-        type: String,
-        required: true,
-        unique: true,
-        lowercase: true,
-        trim: true,
-        validate: {
-            validator: (value: string) => {
-                return validator.isEmail(value);
-            },
-            message: 'Email is invalid.'
-        }
-    },
-    tokens: [{
-        token: {
-            type: String,
-            required: true
-        }
-    }]
-}, {
-    timestamps: true
-})
-
 interface IUser extends mongoose.Document {
     name: string;
     password: string;
@@ -63,8 +22,47 @@ interface IUserMethods extends mongoose.Model<IUser> {
     findByCredentials(email: string, password: string): Promise<IUser | null>;
 }
 
-userSchema.statics.findByCredentials = async (email: string, password: string): Promise<IUser> => {
-    const user: IUser | null = await User.findOne({ email, password })
+const userSchema = new mongoose.Schema<IUser, IUserMethods>({
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    password: {
+        type: String,
+        required: true,
+        trim: true,
+        minLength: 7,
+        validate(value: string) {
+            if (!validator.isStrongPassword(value)) {
+                throw new Error('Password is not follow passwords policy.')
+            }
+        }
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true,
+        validate(value: string) {
+            if (!validator.isEmail(value)) {
+                throw new Error('Email is invalid.');
+            }
+        }
+    },
+    tokens: [{
+        token: {
+            type: String,
+            required: true
+        }
+    }]
+}, {
+    timestamps: true
+})
+
+userSchema.static('findByCredentials', async function findByCredentials(email: string, password: string): Promise<IUser> {
+    const user: IUser | null = await User.findOne({ email })
 
     if (!user) {
         throw new Error('Unable to login.')
@@ -77,19 +75,19 @@ userSchema.statics.findByCredentials = async (email: string, password: string): 
     }
 
     return user;
-}
+})
 
-userSchema.methods.generateAuthToken = async function (): Promise<string> {
+userSchema.method('generateAuthToken', async function generateAuthToken(): Promise<string> {
     const user: any = this
-    const token: string = jwt.sign({ _id: user._id.toString() }, secret, {expiresIn: '7 days'})
+    const token: string = jwt.sign({ _id: user._id.toString() }, secret, { expiresIn: '7 days' })
 
     user.tokens = user.tokens.concat({ token });
     await user.save();
 
     return token
-}
+})
 
-userSchema.methods.toJson = function () {
+userSchema.method('toJson', function toJson() {
     const user: any = this
 
     const userObj = user.toObject()
@@ -98,7 +96,7 @@ userSchema.methods.toJson = function () {
     delete userObj.tokens
 
     return userObj
-}
+})
 
 userSchema.pre('save', async function (next: Function) {
     const user: any = this
