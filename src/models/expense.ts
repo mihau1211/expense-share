@@ -25,7 +25,6 @@ const expenseSchema = new mongoose.Schema<IExpense>({
     },
     isActive: {
         type: Boolean,
-        required: true,
         trim: true,
         default: true
     },
