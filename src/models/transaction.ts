@@ -3,52 +3,53 @@ import validator from 'validator'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import User from './user'
+import Expense from './expense'
 
 const secret = process.env.JWT_SECRET
 if (typeof secret !== 'string') {
     throw new Error('ERROR: Secret has wrong type.')
 }
 
-interface IExpense extends mongoose.Document {
+interface ITransaction extends mongoose.Document {
     name: string
-    isActive: Boolean
     owner: mongoose.Schema.Types.ObjectId
-    users: { user: mongoose.Schema.Types.ObjectId }[]
+    expense: mongoose.Schema.Types.ObjectId
+    value: number,
+    description: string
     toJson(): any
 }
 
-const expenseSchema = new mongoose.Schema<IExpense>({
+const transactionSchema = new mongoose.Schema<ITransaction>({
     name: {
         type: String,
         required: true,
         trim: true
-    },
-    isActive: {
-        type: Boolean,
-        required: true,
-        trim: true,
-        default: true
     },
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
         ref: 'User'
     },
-    users: [{
+    expense: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        ref: 'User'
-    }]
+        ref: 'Expense'
+    },
+    description: {
+        type: String,
+        required: false,
+        trim: true,
+        maxlength: 300
+    },
+    value: {
+        type: Number,
+        required: true,
+        min: 0
+    }
 }, {
     timestamps: true
 })
 
-expenseSchema.virtual('transactions', {
-    ref: 'Transaction',
-    localField: '_id',
-    foreignField: 'expense'
-});
+const Transaction = mongoose.model<ITransaction>('Expense', transactionSchema)
 
-const Expense = mongoose.model<IExpense>('Expense', expenseSchema)
-
-export default Expense
+export default Transaction
