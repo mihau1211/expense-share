@@ -3,11 +3,14 @@ import app from '../src/app'
 import User from '../src/models/user'
 import { setupDb, user1, user2, user1Id, user2Id } from './fixtures/db'
 
+
+const apiV1Prefix = '/api/v1/'
+
 beforeEach(setupDb, 10000)
 
 test('Should thrown a password validation error', async () => {
     const response = await request(app)
-        .post('/users')
+        .post(apiV1Prefix + '/users')
         .send({
             name: 'Mike',
             password: '123',
@@ -20,7 +23,7 @@ test('Should thrown a password validation error', async () => {
 
 test('Should thrown an email validation error', async () => {
     const response = await request(app)
-        .post('/users')
+        .post(apiV1Prefix + '/users')
         .send({
             name: 'Mike',
             password: 'MikePwd1@',
@@ -33,7 +36,7 @@ test('Should thrown an email validation error', async () => {
 
 test('Should thrown an email unique constraint violation error', async () => {
     const response = await request(app)
-        .post('/users')
+        .post(apiV1Prefix + '/users')
         .send({
             name: 'Bob',
             password: 'BobPwd1@',
@@ -46,7 +49,7 @@ test('Should thrown an email unique constraint violation error', async () => {
 
 test('Should create user in db', async () => {
     const response = await request(app)
-        .post('/users')
+        .post(apiV1Prefix + '/users')
         .send({
             name: 'Mike',
             password: 'MikePwd1@',
@@ -62,7 +65,7 @@ test('Should create user in db', async () => {
 
 test('Should get all users', async () => {
     const response = await request(app)
-        .get('/users')
+        .get(apiV1Prefix + '/users')
         .set('Authorization', `Bearer ${user1.tokens[0].token}`)
         .send()
         .expect(200)
@@ -73,7 +76,7 @@ test('Should get all users', async () => {
 
 test('Should login user and return second token', async () => {
     const response = await request(app)
-        .post('/login')
+        .post(apiV1Prefix + '/login')
         .send({
             email: user1.email,
             password: user1.password
@@ -85,7 +88,7 @@ test('Should login user and return second token', async () => {
 
 test('Should not login non-existing user', async () => {
     await request(app)
-        .post('/login')
+        .post(apiV1Prefix + '/login')
         .send({
             email: 'non-exist',
             password: 'non-exist'
@@ -95,8 +98,45 @@ test('Should not login non-existing user', async () => {
 
 test('Should get user profile', async () => {
     const response = await request(app)
-        .get('/users/me')
+        .get(apiV1Prefix + '/users/me')
         .set('Authorization', `Bearer ${user1.tokens[0].token}`)
         .send()
         .expect(200)
+})
+
+test('Should not update non-allowed user fields', async () => {
+    const response = await request(app)
+        .patch(apiV1Prefix + '/users/me')
+        .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+        .send({
+            email: 'newEmail@gmail.com'
+        })
+        .expect(400)
+
+    expect(response.body.user).toBeUndefined()
+})
+
+test('Should update user name and password fields', async () => {
+    const response = await request(app)
+        .patch(apiV1Prefix + '/users/me')
+        .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+        .send({
+            name: 'Bobby',
+            password: 'newBobby1@'
+        })
+        .expect(200)
+
+    const user = await User.findById(user1Id)
+    expect(response.body.name).toEqual(user?.name)
+
+    const login = await request(app)
+        .post(apiV1Prefix + '/login')
+        .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+        .send({
+            email: user1.email,
+            password: 'newBobby1@'
+        })
+        .expect(200)
+
+    expect(login.body.token).not.toBeUndefined()
 })

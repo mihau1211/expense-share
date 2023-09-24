@@ -9,12 +9,12 @@ if (typeof secret !== 'string') {
 }
 
 interface IUser extends mongoose.Document {
-    name: string;
-    password: string;
-    email: string;
-    tokens: { token: string }[];
-    generateAuthToken(): Promise<string>;
-    toJson(): any;
+    name: string
+    password: string
+    email: string
+    tokens: { token: string }[]
+    generateAuthToken(): Promise<string>
+    toJson(): any
 }
 
 // Define IUserMethods interface for the User model
@@ -60,6 +60,12 @@ const userSchema = new mongoose.Schema<IUser, IUserMethods>({
 }, {
     timestamps: true
 })
+
+userSchema.virtual('expenses', {
+    ref: 'Expense',
+    localField: '_id',
+    foreignField: 'owner'
+});
 
 userSchema.static('findByCredentials', async function findByCredentials(email: string, password: string): Promise<IUser> {
     const user: IUser | null = await User.findOne({ email })

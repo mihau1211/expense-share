@@ -44,5 +44,24 @@ router.get('/users/me', auth, async (req: any, res: any) => {
     res.send(req.user)
 })
 
+router.patch('/users/me', auth, async (req: any, res: any) => {
+    const allowedFields = ['name', 'password', 'isRemoved']
+    const updateFields = Object.keys(req.body)
+    const isAllowed = updateFields.every((update) => allowedFields.includes(update))
+
+    if (!isAllowed) {
+        res.status(400).send({ error: 'Request contains invalid fields.' })
+    }
+
+    try {
+        updateFields.forEach((update) => req.user[update] = req.body[update])
+
+        await req.user.save()
+
+        res.send(req.user)
+    } catch (errpr) {
+        res.status(400).send()
+    }
+})
 
 export default router
