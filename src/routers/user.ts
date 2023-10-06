@@ -1,14 +1,8 @@
 import express from 'express'
 import User from '../models/user'
 import auth from '../middleware/auth'
-import multer from 'multer'
-import sharp from 'sharp'
 
 const router = express.Router()
-
-router.get('/test', (req, res) => {
-    res.send('testing of routing')
-})
 
 router.post('/users', async (req: any, res: any) => {
     const user = new User(req.body)
@@ -45,22 +39,22 @@ router.get('/users/me', auth, async (req: any, res: any) => {
 })
 
 router.patch('/users/me', auth, async (req: any, res: any) => {
-    const allowedFields = ['name', 'password', 'isRemoved']
+    const allowedFields = ['name', 'password']
     const updateFields = Object.keys(req.body)
     const isAllowed = updateFields.every((update) => allowedFields.includes(update))
 
-    if (!isAllowed) {
-        res.status(400).send({ error: 'Request contains invalid fields.' })
-    }
-
     try {
+        if (!isAllowed) {
+            throw new Error('Request contains invalid fields')
+        }
+
         updateFields.forEach((update) => req.user[update] = req.body[update])
 
         await req.user.save()
 
         res.send(req.user)
-    } catch (errpr) {
-        res.status(400).send()
+    } catch (error: any) {
+        res.status(400).send({ error: error.message })
     }
 })
 

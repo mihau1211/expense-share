@@ -23,156 +23,171 @@ const apiV1Prefix = '/api/v1/'
 beforeEach(setupDb)
 
 describe('Expense create and update test cases', () => {
-    test('Should not create expense with no name provided', async () => {
-        await request(app)
-            .post('/expenses')
+    test('Should not create expense with wrong body provided', async () => {
+        const response = await request(app)
+            .post(`${apiV1Prefix}/expenses`)
             .set('Authorization', `Bearer ${user1.tokens[0].token}`)
             .send({
-                owner: user1Id
+                names: 'wrong field name'
             })
             .expect(400)
+
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense create: Required body is missing or invalid')
     })
 
-    test('Should not create expense with no owner provided', async () => {
-        await request(app)
-            .post('/expenses')
+    test('Should not create expense with wrong no body provided', async () => {
+        const response = await request(app)
+            .post(`${apiV1Prefix}/expenses`)
             .set('Authorization', `Bearer ${user1.tokens[0].token}`)
-            .send({
-                name: 'Weeding gift'
-            })
+            .send()
             .expect(400)
+
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense create: Required body is missing or invalid')
     })
 
     test('Should create a new expense', async () => {
         const response = await request(app)
-            .post('/expenses')
+            .post(`${apiV1Prefix}/expenses`)
             .set('Authorization', `Bearer ${user1.tokens[0].token}`)
             .send({
-                name: 'Weeding gift',
-                owner: user1Id
+                name: 'Weeding gift'
             })
             .expect(201)
 
         const expense = await Expense.findOne({
             name: 'Weeding gift',
-            owner: response.body.expense._id
+            owner: response.body.expense.owner
         })
-        expect(expense?.owner).toBe(user1Id)
-        expect(expense?.users[0].user).toBe(user1Id)
-        expect(expense?.users[0]).toBe(user1Id)
+
+        expect(expense?.owner.toString()).toBe(user1Id.toString())
+        expect(expense?.isActive).toBeTruthy()
     })
 
-    test('Should not allow to update owner field', async () => {
-        await request(app)
-            .patch(`/expenses/${expense1Id}`)
+    test('Should create a new expense with users', async () => {
+        const response = await request(app)
+            .post(`${apiV1Prefix}/expenses`)
             .set('Authorization', `Bearer ${user1.tokens[0].token}`)
             .send({
-                owner: user2Id
+                name: 'Weeding gift',
+                users: [
+                    user2Id
+                ]
             })
-            .expect(400)
+            .expect(201)
 
-        const expense = await Expense.findById(expense1Id)
-        expect(expense?.owner).toBe(user1Id)
-    })
+        const expense = await Expense.findOne({
+            name: 'Weeding gift',
+            owner: response.body.expense.owner
+        })
 
-    test('Should not allow to update other user expense', async () => {
-        await request(app)
-            .patch(`/expenses/${expense1Id}`)
-            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
-            .send({
-                name: 'It is mine now'
-            })
-            .expect(401)
-
-        const expense = await Expense.findById(expense1Id)
-        expect(expense?.name).not.toBe('It is mine, now')
-    })
-
-    test('Should allow to update user expense', async () => {
-        const response = await request(app)
-            .patch(`/expenses/${expense1Id}`)
-            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
-            .send({
-                name: 'Honeymoon'
-            })
-            .expect(200)
-        
-        const expense = await Expense.findById(response.body.expense._id)
-        expect(expense?.name).toBe('Honeymoon')
-    })
-
-    test('Should allow to add new user to expense', async () => {
-        const response = await request(app)
-            .patch(`/expenses/${expense3Id}`)
-            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
-            .send({
-                user: user1Id
-            })
-            .expect(200)
-        
-        const expense = await Expense.findById(response.body.expense._id)
-        expect(expense?.users[1].user).toBe(user1Id)
+        expect(expense?.owner.toString()).toBe(user1Id.toString())
+        expect(expense?.isActive).toBeTruthy()
+        expect(expense?.users[0].toString()).toBe(user2Id.toString())
     })
 })
 
-describe('Expense get test cases', async () => {
-    test('Should return all inactive expenses that user owns', async () => {
+describe('Expense get test cases', () => {
+    test('Should return all expenses that user owns', async () => {
         const response = await request(app)
-            .get('/expenses/me/own/inactive')
+            .get(`${apiV1Prefix}/expenses/me/own`)
             .set('Authorization', `Bearer ${user2.tokens[0].token}`)
             .send()
             .expect(200)
 
-        expect(response.body.expense.length).toBe(1)
+        expect(response.body.length).toBe(2)
+    })
+
+    test('Should return all inactive expenses that user owns', async () => {
+        const response = await request(app)
+            .get(`${apiV1Prefix}/expenses/me/own?isActive=false`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
+            .send()
+            .expect(200)
+
+        expect(response.body.length).toBe(1)
     })
 
     test('Should return all active expenses that user owns', async () => {
         const response = await request(app)
-            .get('/expenses/me/own/active')
+            .get(`${apiV1Prefix}/expenses/me/own?isActive=true`)
             .set('Authorization', `Bearer ${user2.tokens[0].token}`)
             .send()
             .expect(200)
 
-        expect(response.body.expense.length).toBe(1)
+        expect(response.body.length).toBe(1)
     })
 
-    test('Should return all expenses that user owns', async () => {
+    test('Should return all expenses with name contains \'day\' that user owns', async () => {
         const response = await request(app)
-            .get('/expenses/me/own')
+            .get(`${apiV1Prefix}/expenses/me/own?name=day`)
             .set('Authorization', `Bearer ${user2.tokens[0].token}`)
             .send()
             .expect(200)
 
-        expect(response.body.expense.length).toBe(2)
+        expect(response.body.length).toBe(1)
     })
 
-    test('Should return all active expenses to which user have access', async () => {
+    test('Should return all expenses when there is no valid query that user owns', async () => {
         const response = await request(app)
-            .get('/expenses/me/active')
-            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .get(`${apiV1Prefix}/expenses/me/own?names=day`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
             .send()
             .expect(200)
 
-        expect(response.body.expense.length).toBe(2)
+        expect(response.body.length).toBe(2)
     })
 
-    test('Should return all inactive expenses to which user have access', async () => {
+    test('Should return all expenses', async () => {
         const response = await request(app)
-            .get('/expenses/me/inactive')
-            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .get(`${apiV1Prefix}/expenses/me`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
             .send()
             .expect(200)
 
-        expect(response.body.expense.length).toBe(1)
+        expect(response.body.length).toBe(4)
     })
 
-    test('Should return all expenses to which user have access', async () => {
+    test('Should return 2 expenses where name contains \'day\'', async () => {
         const response = await request(app)
-            .get('/expenses/me')
-            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .get(`${apiV1Prefix}/expenses/me?name=day`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
             .send()
             .expect(200)
 
-        expect(response.body.expense.length).toBe(3)
+        expect(response.body.length).toBe(2)
     })
+
+    test('Should return 1 inactive expense', async () => {
+        const response = await request(app)
+            .get(`${apiV1Prefix}/expenses/me?isActive=false`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
+            .send()
+            .expect(200)
+
+        expect(response.body.length).toBe(1)
+    })
+
+    test('Should return 3 inactive expense', async () => {
+        const response = await request(app)
+            .get(`${apiV1Prefix}/expenses/me?isActive=true`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
+            .send()
+            .expect(200)
+
+        expect(response.body.length).toBe(3)
+    })
+
+    test('Should return 2 inactive expense with name that contains \'day\'', async () => {
+        const response = await request(app)
+            .get(`${apiV1Prefix}/expenses/me?isActive=true&name=day`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
+            .send()
+            .expect(200)
+
+        expect(response.body.length).toBe(2)
+    })
+
+    // TODO: Get by ID && Patch addUser, Patch
 })

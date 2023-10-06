@@ -45,7 +45,7 @@ const expense1 = {
 
 const expense2Id = new mongoose.Types.ObjectId
 const expense2 = {
-    _id: expense1Id,
+    _id: expense2Id,
     name: 'Workout camp',
     isActive: true,
     owner: user1Id,
@@ -54,7 +54,7 @@ const expense2 = {
 
 const expense3Id = new mongoose.Types.ObjectId
 const expense3 = {
-    _id: expense1Id,
+    _id: expense3Id,
     name: 'Birthday present',
     isActive: true,
     owner: user2Id,
@@ -63,7 +63,7 @@ const expense3 = {
 
 const expense4Id = new mongoose.Types.ObjectId
 const expense4 = {
-    _id: expense1Id,
+    _id: expense4Id,
     name: 'New Year party',
     isActive: false,
     owner: user2Id,
