@@ -1,9 +1,4 @@
 import mongoose from "mongoose"
-import validator from 'validator'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
-import User from './user'
-import Expense from './expense'
 
 const secret = process.env.JWT_SECRET
 if (typeof secret !== 'string') {
@@ -14,8 +9,9 @@ interface ITransaction extends mongoose.Document {
     name: string
     owner: mongoose.Schema.Types.ObjectId
     expense: mongoose.Schema.Types.ObjectId
-    value: number,
+    value: number
     description: string
+    date: Date
     toJson(): any
 }
 
@@ -37,14 +33,20 @@ const transactionSchema = new mongoose.Schema<ITransaction>({
     },
     description: {
         type: String,
-        required: false,
+        required: true,
         trim: true,
-        maxlength: 300
+        maxlength: 300,
+        default: ''
     },
     value: {
         type: Number,
         required: true,
         min: 0
+    },
+    date: {
+        type: Date,
+        required: true,
+        default: Date.now()
     }
 }, {
     timestamps: true

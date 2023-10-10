@@ -1,6 +1,5 @@
 require('./db/mongoose')
 import express from 'express'
-import User from './models/user'
 import userRouter from './routers/user'
 import expenseRouter from './routers/expense';
 
