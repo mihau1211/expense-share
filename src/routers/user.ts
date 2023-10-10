@@ -5,23 +5,29 @@ import auth from '../middleware/auth'
 const router = express.Router()
 
 router.post('/users', async (req: any, res: any) => {
-    const user = new User(req.body)
     try {
+        if (!req.body || !req.body.name || !req.body.password || !req.body.email) throw new Error('Required body is missing or invalid')
+        const user = new User(req.body)
+
         await user.save()
         const token = await user.generateAuthToken()
+
         res.status(201).send({ user, token })
     } catch (error: any) {
-        res.status(400).send(error)
+        res.status(400).send({ error: `User create: ${error.message}` })
     }
 })
 
 router.post('/login', async (req: any, res: any) => {
     try {
+        if (!req.body || !req.body.password || !req.body.email) throw new Error('Required body is missing or invalid')
+
         const user = await User.findByCredentials(req.body.email, req.body.password)
         const token: string | undefined = await user?.generateAuthToken()
+
         res.send({ user, token })
-    } catch (error) {
-        res.status(400).send()
+    } catch (error: any) {
+        res.status(400).send({ error: `User login: ${error.message}` })
     }
 })
 
@@ -29,8 +35,8 @@ router.get('/users', auth, async (req: any, res: any) => {
     try {
         const users = await User.find()
         res.send(users)
-    } catch (error) {
-        res.status(500).send()
+    } catch (error: any) {
+        res.status(400).send({ error: `User get: ${error.message}` })
     }
 })
 
@@ -44,6 +50,7 @@ router.patch('/users/me', auth, async (req: any, res: any) => {
     const isAllowed = updateFields.every((update) => allowedFields.includes(update))
 
     try {
+        if (!updateFields.length) throw new Error('Required body is missing')
         if (!isAllowed) {
             throw new Error('Request contains invalid fields')
         }
@@ -52,9 +59,9 @@ router.patch('/users/me', auth, async (req: any, res: any) => {
 
         await req.user.save()
 
-        res.send(req.user)
+        res.status(200).send(req.user)
     } catch (error: any) {
-        res.status(400).send({ error: error.message })
+        res.status(400).send({ error: `User update: ${error.message}` })
     }
 })
 
