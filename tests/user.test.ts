@@ -18,7 +18,8 @@ test('Should thrown a password validation error', async () => {
         })
         .expect(400)
 
-    expect(response.body.user).toBeUndefined()
+    expect(response.body.error).toBeDefined()
+    expect(response.body.error).toContain('validation failed: password')
 })
 
 test('Should thrown an email validation error', async () => {
@@ -31,7 +32,8 @@ test('Should thrown an email validation error', async () => {
         })
         .expect(400)
 
-    expect(response.body.user).toBeUndefined()
+    expect(response.body.error).toBeDefined()
+    expect(response.body.error).toContain('validation failed')
 })
 
 test('Should thrown an email unique constraint violation error', async () => {
@@ -44,7 +46,18 @@ test('Should thrown an email unique constraint violation error', async () => {
         })
         .expect(400)
 
-    expect(response.body.user).toBeUndefined()
+    expect(response.body.error).toBeDefined()
+    expect(response.body.error).toContain('User create: ')
+})
+
+test('Should thrown body is missing error', async () => {
+    const response = await request(app)
+        .post(apiV1Prefix + '/users')
+        .send()
+        .expect(400)
+
+    expect(response.body.error).toBeDefined()
+    expect(response.body.error).toContain('User create: Required body is missing or invalid')
 })
 
 test('Should create user in db', async () => {
