@@ -20,7 +20,7 @@ import {
 
 const apiV1Prefix = '/api/v1/'
 
-beforeEach(setupDb)
+beforeEach(setupDb, 10000)
 
 describe('Expense create and update test cases', () => {
     test('Should not create expense with wrong body provided', async () => {
@@ -188,6 +188,169 @@ describe('Expense get test cases', () => {
 
         expect(response.body.length).toBe(2)
     })
+})
 
-    // TODO: Get by ID && Patch addUser, Patch
+describe('Expenses Get by id test cases', () => {
+    test('Should return expense by id when user is owner', async () => {
+        const response = await request(app)
+            .get(`${apiV1Prefix}/expenses/me/${expense2Id}`)
+            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .send()
+            .expect(200)
+
+        expect(response.body.owner._id.toString()).toBe(user1Id.toString())
+    })
+
+    test('Should return expense by id when user is in users', async () => {
+        const response = await request(app)
+            .get(`${apiV1Prefix}/expenses/me/${expense4Id}`)
+            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .send()
+            .expect(200)
+
+        expect(response.body.users[0]._id.toString()).toBe(user1Id.toString())
+    })
+
+    test('Should return 404 when there is no expense', async () => {
+        const response = await request(app)
+            .get(`${apiV1Prefix}/expenses/me/651fcd2de7da6a54dcda5111`)
+            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .send()
+            .expect(404)
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense get by id: Expense not found')
+    })
+
+    test('Should return 401 when user is not owner or in users array of expense', async () => {
+        const response = await request(app)
+            .get(`${apiV1Prefix}/expenses/me/${expense3Id}`)
+            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .send()
+            .expect(401)
+
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense get by id: Unauthorized access to Expense resource')
+    })
+})
+
+describe('Expenses Update by id test cases', () => {
+    test('Should update expense by id', async () => {
+        await request(app)
+            .patch(`${apiV1Prefix}/expenses/${expense1Id}`)
+            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .send({
+                name: 'Holidays'
+            })
+            .expect(204)
+    })
+
+    test('Should return 401 when user failed authentication', async () => {
+        const response = await request(app)
+            .patch(`${apiV1Prefix}/expenses/${expense1Id}`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
+            .send({
+                name: 'Holidays'
+            })
+            .expect(401)
+
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense update: Unauthorized access to Expense resource')
+    })
+
+    test('Should not update expense by id when body is invalid', async () => {
+        const response = await request(app)
+            .patch(`${apiV1Prefix}/expenses/${expense1Id}`)
+            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .send({
+                owner: 'new owner'
+            })
+            .expect(400)
+
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense update: Given fields are invalid')
+    })
+
+    test('Should not update expense by id when body is missing', async () => {
+        const response = await request(app)
+            .patch(`${apiV1Prefix}/expenses/${expense1Id}`)
+            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .send()
+            .expect(400)
+
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense update: Required body is missing')
+    })
+
+    test('Should add new user to expense by id', async () => {
+        await request(app)
+            .patch(`${apiV1Prefix}/expenses/${expense3Id}/addUser`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
+            .send({
+                user: user1Id
+            })
+            .expect(204)
+    })
+
+    test('Should return 401 when add new user to expense by id by not authorized user', async () => {
+        const response = await request(app)
+            .patch(`${apiV1Prefix}/expenses/${expense3Id}/addUser`)
+            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .send({
+                user: user1Id
+            })
+            .expect(401)
+
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense update: Unauthorized access to Expense resource')
+    })
+
+    test('Should return 404 when updated expense not exists', async () => {
+        const response = await request(app)
+            .patch(`${apiV1Prefix}/expenses/651fcd2de7da6a54dcda5111/addUser`)
+            .set('Authorization', `Bearer ${user1.tokens[0].token}`)
+            .send({
+                user: user1Id
+            })
+            .expect(404)
+
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense update: Expense not found')
+    })
+
+    test('Should return 422 when added user not exists', async () => {
+        const response = await request(app)
+            .patch(`${apiV1Prefix}/expenses/${expense3Id}/addUser`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
+            .send({
+                user: '651fcd2de7da6a54dcda5111'
+            })
+            .expect(422)
+
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense update: User not found')
+    })
+
+    test('Should return 422 added user is already part of expense users', async () => {
+        const response = await request(app)
+            .patch(`${apiV1Prefix}/expenses/${expense3Id}/addUser`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
+            .send({
+                user: user2Id
+            })
+            .expect(422)
+
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense update: Provided User is already part of Expense')
+    })
+
+    test('Should return 400 when no body was provided', async () => {
+        const response = await request(app)
+            .patch(`${apiV1Prefix}/expenses/${expense3Id}/addUser`)
+            .set('Authorization', `Bearer ${user2.tokens[0].token}`)
+            .send()
+            .expect(400)
+
+        expect(response.body.error).toBeDefined()
+        expect(response.body.error).toBe('Expense update: Required body is missing or invalid')
+    })
 })

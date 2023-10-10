@@ -76,7 +76,7 @@ router.get('/expenses/me', auth, async (req: any, res: any) => {
 })
 
 // GET /expenses/:id
-router.get('/expenses/:id', auth, async (req: any, res: any) => {
+router.get('/expenses/me/:id', auth, async (req: any, res: any) => {
     const { id } = req.params
     try {
         const expense = await Expense.findById(id)
