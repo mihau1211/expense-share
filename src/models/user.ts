@@ -8,7 +8,7 @@ if (typeof secret !== 'string') {
     throw new Error('ERROR: Secret has wrong type.')
 }
 
-interface IUser extends mongoose.Document {
+export interface IUser extends mongoose.Document {
     name: string
     password: string
     email: string

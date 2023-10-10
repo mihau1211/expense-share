@@ -13,7 +13,7 @@ interface IExpense extends mongoose.Document {
     name: string
     isActive: Boolean
     owner: mongoose.Schema.Types.ObjectId
-    users: { user: mongoose.Schema.Types.ObjectId }[]
+    users: mongoose.Schema.Types.ObjectId[];
     toJson(): any
 }
 

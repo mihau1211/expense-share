@@ -21,5 +21,4 @@ const connectToMongoDB = async () => {
   }
 };
 
-// Call the function to connect to MongoDB
 connectToMongoDB();
