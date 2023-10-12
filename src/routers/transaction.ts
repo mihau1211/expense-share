@@ -47,11 +47,11 @@ router.post('/transactions', auth, async (req: any, res: any) => {
 // GET /transactions/me
 router.get('/transactions/me', auth, async (req: any, res: any) => {
     try {
-        const { search, sortBy, order = "asc" } = req.query
+        const { name, sortBy, order = "asc" } = req.query
         let query: any = { owner: req.user._id }
 
-        if (search) {
-            query['name'] = new RegExp(search, 'i')
+        if (name) {
+            query.name = new RegExp(name, 'i')
         }
 
         let transactions = await Transaction.find(query)
@@ -80,7 +80,7 @@ router.get('/transactions/me/:id', auth, async (req: any, res: any) => {
 })
 
 // GET /transactions/me/:expenseId
-router.get('/transactions/:expenseId', auth, async (req: any, res: any) => {
+router.get('/transactions/me/:expenseId', auth, async (req: any, res: any) => {
     const { expenseId } = req.params
     try {
         const expense = await Expense.findById(expenseId)
@@ -90,30 +90,19 @@ router.get('/transactions/:expenseId', auth, async (req: any, res: any) => {
             return res.status(401).send({ error: `Transaction get by expense and owner: Unauthorized access to Expense` })
         }
 
-        const transactions = await Transaction.find({ owner: req.user._id, expense: expenseId })
+        const { name, sortBy, order = "asc" } = req.query
+        let query: any = { owner: req.user._id, expense: expenseId }
+
+        if (name) {
+            query.name = new RegExp(name, 'i')
+        }
+
+        let transactions = await Transaction.find(query)
+        transactions = sortTransactions(transactions, sortBy, order)
 
         res.status(200).send(transactions)
     } catch (error: any) {
         res.status(400).send({ error: `Transaction get by expense and owner: ${error.message}` })
-    }
-})
-
-// GET /transactions/:expenseId
-router.get('/transactions/:expenseId', auth, async (req: any, res: any) => {
-    const { expenseId } = req.params
-    try {
-        const expense = await Expense.findById(expenseId)
-
-        if (!expense) return res.status(422).send({ error: `Transaction get by expense: Expense with id: ${expenseId} not found` })
-        if (expense.owner.toString() !== req.user._id.toString() && !expense.users.includes(req.user._id)) {
-            return res.status(401).send({ error: `Transaction get by expense: Unauthorized access to Expense` })
-        }
-
-        const transactions = await Transaction.find({ expense: expenseId })
-
-        res.status(200).send(transactions)
-    } catch (error: any) {
-        res.status(400).send({ error: `Transaction get by expense: ${error.message}` })
     }
 })
 
