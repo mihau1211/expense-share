@@ -32,11 +32,6 @@ const transactionSchema = new mongoose.Schema<ITransaction>({
         required: true,
         ref: 'Expense'
     },
-    users: [{
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        ref: 'User'
-    }],
     description: {
         type: String,
         required: true,
@@ -58,6 +53,6 @@ const transactionSchema = new mongoose.Schema<ITransaction>({
     timestamps: true
 })
 
-const Transaction = mongoose.model<ITransaction>('Expense', transactionSchema)
+const Transaction = mongoose.model<ITransaction>('Transaction', transactionSchema)
 
 export default Transaction
