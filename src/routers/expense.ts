@@ -9,9 +9,13 @@ const router = express.Router()
 router.post('/expenses', auth, async (req: any, res: any) => {
     try {
         if (!req.body || !req.body.name) throw new Error('Required body is missing or invalid')
-        
+
         req.body.owner = req.user._id
         req.body.isActive = true
+
+        if (req.body.users.includes(req.user._id)) {
+            req.body.users = req.body.users.filter((userId: any) => userId !== req.user._id);
+        }
         
         if (req.body.users) {
             for (let userId of req.body.users) {
@@ -68,7 +72,8 @@ router.get('/expenses/me', auth, async (req: any, res: any) => {
             .populate({
                 path: 'users',
                 select: '_id name email'
-            });
+            })
+            .sort({ updatedAt: -1});
         res.send(expenses)
     } catch (error: any) {
         res.status(400).send({ error: `Expense get: ${error.message}` })
@@ -106,21 +111,18 @@ router.patch('/expenses/:id/addUser', auth, async (req: any, res: any) => {
 
         const expense = await Expense.findById(id)
         if (!expense) return res.status(404).send({ error: 'Expense update: Expense not found' })
-        if (expense.owner.toString() !== req.user._id.toString()) {
-            return res.status(401).send({ error: 'Expense update: Unauthorized access to Expense resource' })
-        }
 
         const user = await User.findById(req.body.user)
         if (!user) return res.status(422).send({ error: 'Expense update: User not found' })
 
-        if (expense.users.includes(user._id)) {
+        if (expense.users.includes(user._id) || user._id.toString() === expense.owner.toString()) {
             return res.status(422).send({ error: 'Expense update: Provided User is already part of Expense' })
         }
 
         expense.users.push(user._id)
         await expense.save()
 
-        res.status(204).send()
+        res.status(200).send(expense)
     } catch (error: any) {
         res.status(400).send({ error: `Expense update: ${error.message}` })
     }
@@ -149,6 +151,32 @@ router.patch('/expenses/:id', auth, async (req: any, res: any) => {
         await expense.save()
 
         res.status(204).send()
+    } catch (error: any) {
+        res.status(400).send({ error: `Expense update: ${error.message}` })
+    }
+})
+
+// PATCH /expenses/:id/removeUser
+router.patch('/expenses/:id/removeUser', auth, async (req: any, res: any) => {
+    const { id } = req.params
+    const allowedFields = ['userId']
+    const updateFields = Object.keys(req.body)
+    try {
+        if (!updateFields.length) throw new Error('Required body is missing')
+        const isInvalidField = updateFields.some((field) => !allowedFields.includes(field));
+        if (isInvalidField) throw new Error('Given fields are invalid')
+
+        const expense = await Expense.findById(id)
+        if (!expense) return res.status(404).send({ error: 'Expense update: Expense not found' })
+        if (expense.owner.toString() !== req.user._id.toString()) {
+            return res.status(401).send({ error: 'Expense update: Unauthorized access to Expense resource' })
+        }
+
+        expense.users.splice(expense.users.indexOf(id))
+
+        await expense.save()
+
+        res.status(200).send(expense)
     } catch (error: any) {
         res.status(400).send({ error: `Expense update: ${error.message}` })
     }

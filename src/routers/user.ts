@@ -31,10 +31,40 @@ router.post('/login', async (req: any, res: any) => {
     }
 })
 
+router.post('/logout', auth, async (req: any, res: any) => {
+    try {
+        req.user.tokens = [];
+        await req.user.save();
+
+        res.send({ message: 'User logged out successfully' });
+    } catch (error: any) {
+        res.status(500).send({ error: `Logout failed: ${error.message}` });
+    }
+});
+
 router.get('/users', auth, async (req: any, res: any) => {
     try {
-        const users = await User.find()
+        const { email } = req.query
+        let users;
+
+        if (email) {
+            users = await User.find({ email })
+        } else {
+            users = await User.find()
+        }
         res.send(users)
+    } catch (error: any) {
+        res.status(400).send({ error: `User get: ${error.message}` })
+    }
+})
+
+router.get('/users/email', async (req: any, res: any) => {
+    try {
+        const user = await User.find({ email: req.query.email })
+
+        if (!user.length) return res.send({ isAvailable: true })
+
+        res.send({ isAvailable: false })
     } catch (error: any) {
         res.status(400).send({ error: `User get: ${error.message}` })
     }

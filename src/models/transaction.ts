@@ -9,6 +9,7 @@ interface ITransaction extends mongoose.Document {
     name: string
     owner: mongoose.Schema.Types.ObjectId
     expense: mongoose.Schema.Types.ObjectId
+    users: mongoose.Schema.Types.ObjectId[]
     value: number
     description: string
     date: Date
@@ -52,6 +53,6 @@ const transactionSchema = new mongoose.Schema<ITransaction>({
     timestamps: true
 })
 
-const Transaction = mongoose.model<ITransaction>('Expense', transactionSchema)
+const Transaction = mongoose.model<ITransaction>('Transaction', transactionSchema)
 
 export default Transaction
