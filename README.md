@@ -2,7 +2,7 @@
 
 Steps to reproduce:
 
-### dev.env
+### Create config/dev.env in main dir
 
 PORT=3100
 
